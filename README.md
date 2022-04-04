@@ -1,2 +1,2 @@
 # teip-ts
-teip typescript clone
+[teip](https://github.com/greymd/teip) typescript clone
