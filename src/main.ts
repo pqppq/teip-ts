@@ -21,3 +21,4 @@ function main(): void {
 }
 
 main();
+console.log("exit");
