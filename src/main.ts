@@ -39,34 +39,28 @@ function main(): void {
   const flag_regex_delimiter = args["D"] ? true : false;
 
   const c = args["c"];
-  let char_list: Result<Range[], string> = c
-    ? toRanges(c, flag_invert)
-    : toRanges("1", true);
+  let char_list: Result<Range[], string> =
+    c != undefined ? toRanges("-c", c, flag_invert) : Range.ALL;
   if (char_list.isErr()) {
     console.log(char_list.value);
     Deno.exit(1);
   }
-  console.log(char_list);
 
   const f = args["f"];
-  let field_list: Result<Range[], string> = f
-    ? toRanges(f, flag_invert)
-    : toRanges("1", true);
+  let field_list: Result<Range[], string> =
+    f != undefined ? toRanges("-f", f, flag_invert) : Range.ALL;
   if (field_list.isErr()) {
     console.log(field_list.value);
     Deno.exit(1);
   }
-  console.log(field_list);
 
   const l = args["l"];
-  let line_list: Result<Range[], string> = l
-    ? toRanges(l, flag_invert)
-    : toRanges("1", true);
+  let line_list: Result<Range[], string> =
+    l != undefined ? toRanges("-l", l, flag_invert) : Range.ALL;
   if (line_list.isErr()) {
     console.log(line_list.value);
     Deno.exit(1);
   }
-  console.log(line_list);
 
   let regex_mode = "";
   let line_end = "\n";

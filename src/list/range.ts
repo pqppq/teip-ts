@@ -6,6 +6,8 @@ export class Range {
   public low: number;
   public high: number;
 
+  static ALL = new Ok<Range[], string>([new Range(1, MAX)]);
+
   constructor(low: number, high: number) {
     this.low = low;
     this.high = high;
