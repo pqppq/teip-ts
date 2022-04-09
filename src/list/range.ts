@@ -72,7 +72,7 @@ export class Range {
   static fromList(list: string): Result<Range[], string> {
     const ranges: Range[] = [];
 
-    for (const item in list.split(",")) {
+    for (const item of list.split(",")) {
       const res = Range.fromStr(item);
       if (res.isOk()) {
         ranges.push(res.value);
@@ -128,7 +128,7 @@ export class Range {
       }
     }
 
-    const last = ranges[n];
+    const last = ranges[n - 1];
     if (last.high < MAX) {
       {
         complements.push(new Range(last.high + 1, MAX));

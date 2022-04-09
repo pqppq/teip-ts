@@ -38,12 +38,11 @@ function main(): void {
   const flag_delimiter = args["d"] ? true : false;
   const flag_regex_delimiter = args["D"] ? true : false;
 
-  // -l 1-2 ->
-  // -l -3 ->
   const c = args["c"];
   let char_list: Result<Range[], string> = c
     ? toRanges(c, flag_invert)
     : toRanges("1", true);
+  console.log(char_list);
   if (char_list.isErr()) {
     console.log(char_list.value);
     Deno.exit(1);
