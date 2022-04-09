@@ -19,10 +19,11 @@ export class Range {
     const inval = "failed to parse range";
 
     let res: Result<Range, string> = new Err<Range, string>(inval);
+    const pattern = /^\d+$/;
 
     // ex: 1
     if (n && m == undefined) {
-      if (n.match(/\d+/)) {
+      if (n.match(pattern)) {
         const nm = Number.parseInt(n);
         if (nm > 0) res = new Ok<Range, string>(new Range(nm, nm));
         else res = new Err<Range, string>(field);
@@ -33,7 +34,7 @@ export class Range {
 
     // ex: 1-
     if (n && m == "") {
-      if (n.match(/\d+/)) {
+      if (n.match(pattern)) {
         const low = Number.parseInt(n);
         if (low > 0) res = new Ok<Range, string>(new Range(low, MAX));
         else res = new Err<Range, string>(field);
@@ -44,7 +45,7 @@ export class Range {
 
     // ex: -2
     if (n == "" && m) {
-      if (n.match(/\d+/)) {
+      if (n.match(pattern)) {
         const high = Number.parseInt(m);
         if (high > 0) res = new Ok<Range, string>(new Range(1, high));
         else res = new Err<Range, string>(field);
@@ -55,7 +56,7 @@ export class Range {
 
     // ex: 1-2
     if (n && m) {
-      if (n.match(/\d+/)) {
+      if (n.match(pattern) && m.match(pattern)) {
         const low = Number.parseInt(n);
         const high = Number.parseInt(m);
         if (low > 0 && low <= high)

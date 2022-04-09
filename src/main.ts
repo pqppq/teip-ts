@@ -42,11 +42,11 @@ function main(): void {
   let char_list: Result<Range[], string> = c
     ? toRanges(c, flag_invert)
     : toRanges("1", true);
-  console.log(char_list);
   if (char_list.isErr()) {
     console.log(char_list.value);
     Deno.exit(1);
   }
+  console.log(char_list);
 
   const f = args["f"];
   let field_list: Result<Range[], string> = f
@@ -56,6 +56,7 @@ function main(): void {
     console.log(field_list.value);
     Deno.exit(1);
   }
+  console.log(field_list);
 
   const l = args["l"];
   let line_list: Result<Range[], string> = l
@@ -65,6 +66,7 @@ function main(): void {
     console.log(line_list.value);
     Deno.exit(1);
   }
+  console.log(line_list);
 
   let regex_mode = "";
   let line_end = "\n";
