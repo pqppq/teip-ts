@@ -36,6 +36,8 @@ async function sendPipeWithCommand(
   });
   await p.stdin?.write(utf8Encode(`echo -n ${input} | ${command.join(" ")}`));
   p.stdin.close();
+  // wait for the process exit
+  await p.status();
 }
 
 async function sendPipe(input: string): Promise<void> {
@@ -45,6 +47,8 @@ async function sendPipe(input: string): Promise<void> {
     stdout: "inherit",
     stderr: "inherit",
   });
+  // wait for the process exit
+  await p.status();
 }
 
 // process -l option
