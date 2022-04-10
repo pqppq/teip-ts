@@ -1,7 +1,8 @@
 import { parse } from "./utils/mod.ts";
 import { Range } from "./list/range.ts";
 import { toRanges } from "./utils/converter.ts";
-import { Result } from "./utils/result.ts";
+import { Result, Ok, Err } from "./utils/result.ts";
+import { processLine } from "./utils/process.ts";
 
 //  --help          Display this help and exit
 //  --version       Show version and exit
@@ -19,62 +20,69 @@ import { Result } from "./utils/result.ts";
 
 const args = Deno.args;
 
-function main(): void {
+async function main(): Promise<void> {
   const args = parse(Deno.args);
 
   const cmds = args["--"];
-  const rest = args["_"];
+  const rest = args[""];
 
-  const flag_only = args["o"];
-  const flag_onig = args["G"];
-  const flag_solid = args["s"];
-  const flag_invert = args["v"];
-  const flag_zero = args["z"];
+  const flagOnly = args["o"];
+  const flagOnig = args["G"];
+  const flagSolid = args["s"];
+  const flagInvert = args["v"];
+  const flagZero = args["z"];
 
-  const flag_regex = args["g"] ? true : false;
-  const flag_char = args["c"] ? true : false;
-  const flag_lines = args["l"] ? true : false;
-  const flag_field = args["f"] ? true : false;
-  const flag_delimiter = args["d"] ? true : false;
-  const flag_regex_delimiter = args["D"] ? true : false;
+  const flagRegex = args["g"] ? true : false;
+  const flagChar = args["c"] ? true : false;
+  const flagLines = args["l"] ? true : false;
+  const flagField = args["f"] ? true : false;
+  const flagDelimiter = args["d"] ? true : false;
+  const flagRegexDelimiter = args["D"] ? true : false;
 
   const c = args["c"];
-  let char_list: Result<Range[], string> =
-    c != undefined ? toRanges("-c", c, flag_invert) : Range.ALL;
-  if (char_list.isErr()) {
-    console.log(char_list.value);
+  let charList: Result<Range[], string> =
+    c != undefined
+      ? toRanges("-c", c, flagInvert)
+      : new Ok<Range[], string>([Range.ALL]);
+  if (charList.isErr()) {
+    console.log(charList.value);
     Deno.exit(1);
   }
 
   const f = args["f"];
-  let field_list: Result<Range[], string> =
-    f != undefined ? toRanges("-f", f, flag_invert) : Range.ALL;
-  if (field_list.isErr()) {
-    console.log(field_list.value);
+  let fieldList: Result<Range[], string> =
+    f != undefined
+      ? toRanges("-f", f, flagInvert)
+      : new Ok<Range[], string>([Range.ALL]);
+  if (fieldList.isErr()) {
+    console.log(fieldList.value);
     Deno.exit(1);
   }
 
   const l = args["l"];
-  let line_list: Result<Range[], string> =
-    l != undefined ? toRanges("-l", l, flag_invert) : Range.ALL;
-  if (line_list.isErr()) {
-    console.log(line_list.value);
+  let lineList: Result<Range[], string> =
+    l != undefined
+      ? toRanges("-l", l, flagInvert)
+      : new Ok<Range[], string>([Range.ALL]);
+  if (lineList.isErr()) {
+    console.log(lineList.value);
     Deno.exit(1);
   }
 
-  let regex_mode = "";
-  let line_end = "\n";
+  let regexMode = "";
+  let lineEnd = "\n";
   // NUL is used as line delimiter
-  if (flag_zero) {
-    regex_mode = "(?ms)";
-    line_end = "\0";
+  if (flagZero) {
+    regexMode = "(?ms)";
+    // NUL character
+    lineEnd = String.fromCharCode(0, 16);
   }
 
   let regex = "";
-  if (!flag_onig) {
+  if (!flagOnig) {
     // TODO
   } else {
-    if (flag_zero) {
+    if (flagZero) {
       // TODO
     } else {
       // TODO
@@ -82,12 +90,26 @@ function main(): void {
   }
 
   const d = args["d"];
-  const regex_delimiter: RegExp = d ? new RegExp(d, regex_mode) : /\s+/;
+  const regexDelimiter: RegExp = d ? new RegExp(d, regexMode) : /\s+/;
 
-  const flag_dryrun: boolean = !cmds.length;
+  const flagDryrun: boolean = !cmds.length;
 
-  const single_token_per_line = (!flag_only && flag_regex) || flag_lines;
+  // ***** Start processing *****
 
-  // const ch:
+  // read from stdin
+  if (flagLines) {
+    const res = await processLine(cmds, lineList.value, lineEnd);
+    // if (res.isErr()) {
+    //   console.log(res.value);
+    //   Deno.exit(1);
+    // }
+    // Deno.stdin.read();
+    // Deno.exit(0);
+    // } else if (!flagOnly && flagRegex) {
+    // if (flagOnig) {
+    // } else {
+    // }
+    // } else {
+  }
 }
 main();

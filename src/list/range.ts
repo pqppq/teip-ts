@@ -1,12 +1,10 @@
 import { Result, Ok, Err } from "../utils/result.ts";
 
-const MAX = Number.MAX_SAFE_INTEGER;
-
 export class Range {
   public low: number;
   public high: number;
-
-  static ALL = new Ok<Range[], string>([new Range(1, MAX)]);
+  static MAX = Number.MAX_SAFE_INTEGER;
+  static ALL = new Range(1, Range.MAX);
 
   constructor(low: number, high: number) {
     this.low = low;
@@ -38,7 +36,7 @@ export class Range {
     if (n && m == "") {
       if (n.match(pattern)) {
         const low = Number.parseInt(n);
-        if (low > 0) res = new Ok<Range, string>(new Range(low, MAX));
+        if (low > 0) res = new Ok<Range, string>(new Range(low, Range.MAX));
         else res = new Err<Range, string>(field);
       } else {
         res = new Err<Range, string>(inval);
@@ -132,9 +130,9 @@ export class Range {
     }
 
     const last = ranges[n - 1];
-    if (last.high < MAX) {
+    if (last.high < Range.MAX) {
       {
-        complements.push(new Range(last.high + 1, MAX));
+        complements.push(new Range(last.high + 1, Range.MAX));
       }
     }
     return complements;
