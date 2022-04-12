@@ -24,31 +24,31 @@ async function readStdIn(): Promise<Result<string, string>> {
   return new Ok(input);
 }
 
-async function sendPipeWithCommand(
+async function execCommands(
   command: string[],
   input: string
-): Promise<void> {
+): Promise<Result<string, string>> {
   const p = Deno.run({
     cmd: ["bash"],
     stdin: "piped",
-    stdout: "inherit",
+    stdout: "piped",
     stderr: "inherit",
   });
   await p.stdin?.write(utf8Encode(`echo -n ${input} | ${command.join(" ")}`));
-  p.stdin.close();
-  // wait for the process exit
-  await p.status();
+  await p.stdin?.close();
+  const exitCode = (await p.status()).code;
+  const output = await p.output();
+  if (exitCode == 0) {
+    return new Err("teip: Commands failed");
+  }
+  if (output.length == 0) {
+    return new Err("teip: Output of given commands is exhausted");
+  }
+  return new Ok(utf8Decode(output));
 }
 
-async function sendPipe(input: string): Promise<void> {
-  const p = Deno.run({
-    cmd: ["echo", "-n", input],
-    stdin: "null",
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-  // wait for the process exit
-  await p.status();
+async function write(input: string): Promise<void> {
+  await Deno.stdout.write(utf8Encode(input));
 }
 
 // process -l option
@@ -58,11 +58,6 @@ export async function processLine(
   lineEnd: string
 ): Promise<void> {
   const input = await readStdIn();
-  let exitCode = 0;
-  if (input.isErr()) {
-    console.log(input.value);
-    exitCode = 1;
-  }
 
   if (input.isOk()) {
     const lines = input.value.slice(0, -1).split(lineEnd);
@@ -79,15 +74,27 @@ export async function processLine(
         high = range ? range.high : Range.MAX;
       }
       if (low <= n && n <= high) {
-        await sendPipeWithCommand(cmds, line);
-        await sendPipe(lineEnd);
+        const output = await execCommands(cmds, line);
+        if (output.isOk()) {
+          await write(output.value);
+          await write(lineEnd);
+        }
+        if (output.isErr()) {
+          await write(output.value);
+          Deno.exit(1);
+        }
       } else {
-        await sendPipe(line);
-        await sendPipe(lineEnd);
+        await write(line);
+        await write(lineEnd);
       }
     }
   }
 
-  if (exitCode == 0) Deno.exit(0);
-  else Deno.exit(1);
+  let exitCode = 0;
+  if (input.isErr()) {
+    console.log(input.value);
+    exitCode = 1;
+  }
+
+  Deno.exit(exitCode);
 }
