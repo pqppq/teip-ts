@@ -38,17 +38,22 @@ async function execCommands(
   await p.stdin?.close();
   const exitCode = (await p.status()).code;
   const output = await p.output();
-  if (exitCode == 0) {
-    return new Err("teip: Commands failed");
-  }
+
   if (output.length == 0) {
     return new Err("teip: Output of given commands is exhausted");
   }
   return new Ok(utf8Decode(output));
 }
 
-async function write(input: string): Promise<void> {
-  await Deno.stdout.write(utf8Encode(input));
+export async function write(
+  result: string | string[],
+  lineEnd: string
+): Promise<void> {
+  const output =
+    typeof result == "object"
+      ? result.join(lineEnd) + lineEnd
+      : result + lineEnd;
+  await Deno.stdout.write(utf8Encode(output));
 }
 
 // process -l option
@@ -58,6 +63,8 @@ export async function processLine(
   lineEnd: string
 ): Promise<void> {
   const input = await readStdIn();
+
+  const res: string[] = [];
 
   if (input.isOk()) {
     const lines = input.value.slice(0, -1).split(lineEnd);
@@ -76,23 +83,24 @@ export async function processLine(
       if (low <= n && n <= high) {
         const output = await execCommands(cmds, line);
         if (output.isOk()) {
-          await write(output.value);
-          await write(lineEnd);
+          res.push(output.value.trimEnd());
         }
         if (output.isErr()) {
-          await write(output.value);
+          await write(output.value, lineEnd);
+          await write(res, lineEnd);
           Deno.exit(1);
         }
       } else {
-        await write(line);
-        await write(lineEnd);
+        res.push(line);
       }
     }
   }
 
+  await write(res, lineEnd);
+
   let exitCode = 0;
   if (input.isErr()) {
-    console.log(input.value);
+    write(input.value, lineEnd);
     exitCode = 1;
   }
 

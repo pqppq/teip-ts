@@ -2,7 +2,7 @@ import { parse } from "./utils/mod.ts";
 import { Range } from "./list/range.ts";
 import { toRanges } from "./utils/converter.ts";
 import { Result, Ok, Err } from "./utils/result.ts";
-import { processLine } from "./utils/process.ts";
+import { write, processLine } from "./utils/process.ts";
 
 //  --help          Display this help and exit
 //  --version       Show version and exit
@@ -39,36 +39,6 @@ async function main(): Promise<void> {
   const flagDelimiter = args["d"] ? true : false;
   const flagRegexDelimiter = args["D"] ? true : false;
 
-  const c = args["c"];
-  let charList: Result<Range[], string> =
-    c != undefined
-      ? toRanges("-c", c, flagInvert)
-      : new Ok<Range[], string>([Range.ALL]);
-  if (charList.isErr()) {
-    console.log(charList.value);
-    Deno.exit(1);
-  }
-
-  const f = args["f"];
-  let fieldList: Result<Range[], string> =
-    f != undefined
-      ? toRanges("-f", f, flagInvert)
-      : new Ok<Range[], string>([Range.ALL]);
-  if (fieldList.isErr()) {
-    console.log(fieldList.value);
-    Deno.exit(1);
-  }
-
-  const l = args["l"];
-  let lineList: Result<Range[], string> =
-    l != undefined
-      ? toRanges("-l", l, flagInvert)
-      : new Ok<Range[], string>([Range.ALL]);
-  if (lineList.isErr()) {
-    console.log(lineList.value);
-    Deno.exit(1);
-  }
-
   let regexMode = "";
   let lineEnd = "\n";
   // NUL is used as line delimiter
@@ -87,6 +57,36 @@ async function main(): Promise<void> {
     } else {
       // TODO
     }
+  }
+
+  const c = args["c"];
+  let charList: Result<Range[], string> =
+    c != undefined
+      ? toRanges("-c", c, flagInvert)
+      : new Ok<Range[], string>([Range.ALL]);
+  if (charList.isErr()) {
+    write(charList.value, lineEnd);
+    Deno.exit(1);
+  }
+
+  const f = args["f"];
+  let fieldList: Result<Range[], string> =
+    f != undefined
+      ? toRanges("-f", f, flagInvert)
+      : new Ok<Range[], string>([Range.ALL]);
+  if (fieldList.isErr()) {
+    write(fieldList.value, lineEnd);
+    Deno.exit(1);
+  }
+
+  const l = args["l"];
+  let lineList: Result<Range[], string> =
+    l != undefined
+      ? toRanges("-l", l, flagInvert)
+      : new Ok<Range[], string>([Range.ALL]);
+  if (lineList.isErr()) {
+    write(lineList.value, lineEnd);
+    Deno.exit(1);
   }
 
   const d = args["d"];
