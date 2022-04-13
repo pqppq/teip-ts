@@ -2,7 +2,7 @@ import { parse } from "./utils/mod.ts";
 import { Range } from "./list/range.ts";
 import { toRanges } from "./utils/converter.ts";
 import { Result, Ok, Err } from "./utils/result.ts";
-import { write, processLine } from "./utils/process.ts";
+import { write, processLine, processRegexLine } from "./utils/process.ts";
 
 //  --help          Display this help and exit
 //  --version       Show version and exit
@@ -39,31 +39,28 @@ async function main(): Promise<void> {
   const flagDelimiter = args["d"] ? true : false;
   const flagRegexDelimiter = args["D"] ? true : false;
 
-  let regexMode = "";
   let lineEnd = "\n";
   // NUL is used as line delimiter
   if (flagZero) {
-    regexMode = "(?ms)";
     // NUL character
     lineEnd = String.fromCharCode(0, 16);
   }
 
-  let regex = "";
-  if (!flagOnig) {
-    // TODO
-  } else {
-    if (flagZero) {
-      // TODO
-    } else {
-      // TODO
-    }
+  const g = args["g"];
+  let regex: Result<string, string> =
+    g != undefined
+      ? new Ok(g)
+      : new Err(
+          "teip: Expected argument for flag '-g' but reached end of arguments."
+        );
+  if (regex.isErr()) {
+    write(regex.value, lineEnd);
+    Deno.exit(1);
   }
 
   const c = args["c"];
   let charList: Result<Range[], string> =
-    c != undefined
-      ? toRanges("-c", c, flagInvert)
-      : new Ok<Range[], string>([Range.ALL]);
+    c != undefined ? toRanges("-c", c, flagInvert) : new Ok([Range.ALL]);
   if (charList.isErr()) {
     write(charList.value, lineEnd);
     Deno.exit(1);
@@ -71,9 +68,7 @@ async function main(): Promise<void> {
 
   const f = args["f"];
   let fieldList: Result<Range[], string> =
-    f != undefined
-      ? toRanges("-f", f, flagInvert)
-      : new Ok<Range[], string>([Range.ALL]);
+    f != undefined ? toRanges("-f", f, flagInvert) : new Ok([Range.ALL]);
   if (fieldList.isErr()) {
     write(fieldList.value, lineEnd);
     Deno.exit(1);
@@ -81,9 +76,7 @@ async function main(): Promise<void> {
 
   const l = args["l"];
   let lineList: Result<Range[], string> =
-    l != undefined
-      ? toRanges("-l", l, flagInvert)
-      : new Ok<Range[], string>([Range.ALL]);
+    l != undefined ? toRanges("-l", l, flagInvert) : new Ok([Range.ALL]);
   if (lineList.isErr()) {
     write(lineList.value, lineEnd);
     Deno.exit(1);
@@ -98,18 +91,13 @@ async function main(): Promise<void> {
 
   // read from stdin
   if (flagLines) {
-    const res = await processLine(cmds, lineList.value, lineEnd);
-    // if (res.isErr()) {
-    //   console.log(res.value);
-    //   Deno.exit(1);
-    // }
-    // Deno.stdin.read();
-    // Deno.exit(0);
-    // } else if (!flagOnly && flagRegex) {
-    // if (flagOnig) {
-    // } else {
-    // }
-    // } else {
+    await processLine(cmds, lineList.value, lineEnd);
+  } else if (!flagOnly && flagRegex) {
+    if (flagOnig) {
+      // TODO
+    } else {
+      await processRegexLine(cmds, regex, lineList.value, flagInvert, lineEnd);
+    }
   }
 }
 main();

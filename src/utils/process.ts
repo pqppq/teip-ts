@@ -45,14 +45,9 @@ async function execCommands(
   return new Ok(utf8Decode(output));
 }
 
-export async function write(
-  result: string | string[],
-  lineEnd: string
-): Promise<void> {
+export async function write(result: string | string[]): Promise<void> {
   const output =
-    typeof result == "object"
-      ? result.join(lineEnd) + lineEnd
-      : result + lineEnd;
+    typeof result == "object" ? result.join("\n") + "\n" : result + "\n";
   await Deno.stdout.write(utf8Encode(output));
 }
 
@@ -86,8 +81,8 @@ export async function processLine(
           res.push(output.value.trimEnd());
         }
         if (output.isErr()) {
-          await write(output.value, lineEnd);
-          await write(res, lineEnd);
+          await write(output.value);
+          await write(res);
           Deno.exit(1);
         }
       } else {
@@ -96,11 +91,63 @@ export async function processLine(
     }
   }
 
-  await write(res, lineEnd);
+  await write(res);
 
   let exitCode = 0;
   if (input.isErr()) {
-    write(input.value, lineEnd);
+    write(input.value);
+    exitCode = 1;
+  }
+
+  Deno.exit(exitCode);
+}
+
+export async function processRegexLine(
+  cmds: string[],
+  regex: string,
+  lineList: Range[],
+  invert: boolean,
+  lineEnd: string
+): Promise<void> {
+  const input = await readStdIn();
+
+  const res: string[] = [];
+
+  if (input.isOk()) {
+    const lines = input.value.slice(0, -1).split(lineEnd);
+
+    let range = lineList.shift();
+    let low = range ? range.low : Range.MAX;
+    let high = range ? range.high : Range.MAX;
+
+    for (const [index, line] of lines.entries()) {
+      const n = index + 1;
+      if (high < n) {
+        range = lineList.shift();
+        low = range ? range.low : Range.MAX;
+        high = range ? range.high : Range.MAX;
+      }
+      if (low <= n && n <= high) {
+        const output = await execCommands(cmds, line);
+        if (output.isOk()) {
+          res.push(output.value.trimEnd());
+        }
+        if (output.isErr()) {
+          await write(output.value);
+          await write(res);
+          Deno.exit(1);
+        }
+      } else {
+        res.push(line);
+      }
+    }
+  }
+
+  await write(res);
+
+  let exitCode = 0;
+  if (input.isErr()) {
+    write(input.value);
     exitCode = 1;
   }
 
