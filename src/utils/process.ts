@@ -38,7 +38,9 @@ async function execCommands(
   await p.stdin?.close();
   const exitCode = (await p.status()).code;
   const output = await p.output();
-
+  if (exitCode == 1) {
+    return new Err("teip: Commands failed");
+  }
   if (output.length == 0) {
     return new Err("teip: Output of given commands is exhausted");
   }
