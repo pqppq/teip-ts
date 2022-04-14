@@ -42,62 +42,84 @@ async function main(): Promise<void> {
   let lineEnd = "\n";
   // NUL is used as line delimiter
   if (flagZero) {
-    // NUL character
-    lineEnd = String.fromCharCode(0, 16);
+    lineEnd = String.fromCharCode(0, 16); // NUL character
   }
 
   const g = args["g"];
-  let regex: Result<string, string> =
-    g != undefined
-      ? new Ok(g)
-      : new Err(
-          "teip: Expected argument for flag '-g' but reached end of arguments."
-        );
-  if (regex.isErr()) {
-    write(regex.value, lineEnd);
-    Deno.exit(1);
+  let regex: Result<string, string>;
+  if (g == "") {
+    regex = new Ok("");
+  } else if (g != "") {
+    regex = new Ok(g);
+  } else {
+    regex = new Err(
+      "teip: Expected argument for flag '-g' but reached end of arguments."
+    );
   }
 
   const c = args["c"];
-  let charList: Result<Range[], string> =
+  const charList: Result<Range[], string> =
     c != undefined ? toRanges("-c", c, flagInvert) : new Ok([Range.ALL]);
   if (charList.isErr()) {
-    write(charList.value, lineEnd);
+    write(charList.value);
     Deno.exit(1);
   }
 
   const f = args["f"];
-  let fieldList: Result<Range[], string> =
+  const fieldList: Result<Range[], string> =
     f != undefined ? toRanges("-f", f, flagInvert) : new Ok([Range.ALL]);
   if (fieldList.isErr()) {
-    write(fieldList.value, lineEnd);
+    write(fieldList.value);
     Deno.exit(1);
   }
 
   const l = args["l"];
-  let lineList: Result<Range[], string> =
+  const lineList: Result<Range[], string> =
     l != undefined ? toRanges("-l", l, flagInvert) : new Ok([Range.ALL]);
   if (lineList.isErr()) {
-    write(lineList.value, lineEnd);
+    write(lineList.value);
     Deno.exit(1);
   }
 
   const d = args["d"];
-  const regexDelimiter: RegExp = d ? new RegExp(d, regexMode) : /\s+/;
+  const regexDelimiter: RegExp = d ? new RegExp(d) : /\s+/;
 
   const flagDryrun: boolean = !cmds.length;
 
   // ***** Start processing *****
+  const flags =
+    Number(flagRegex) +
+    Number(flagChar) +
+    Number(flagLines) +
+    Number(flagField);
+  if (flags != 1) {
+    write("teip: Invalid arguments.");
+    Deno.exit(1);
+  }
 
   // read from stdin
   if (flagLines) {
+    // -l <list>
     await processLine(cmds, lineList.value, lineEnd);
-  } else if (!flagOnly && flagRegex) {
-    if (flagOnig) {
-      // TODO
+  } else if (flagRegex) {
+    if (!flagOnly) {
+      if (flagOnig) {
+        // -g <pattern> -G
+        // TODO
+      } else {
+        // -g <pattern>
+        await processRegexLine(cmds, regex.value, flagInvert, lineEnd);
+      }
     } else {
-      await processRegexLine(cmds, regex, lineList.value, flagInvert, lineEnd);
+      // -g <pattern> -G -o
+      if (flagOnig) {
+        // TODO
+      } else {
+        // -g <pattern> -o
+        // TODO
+      }
     }
   }
 }
+
 main();
