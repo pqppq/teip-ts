@@ -68,7 +68,7 @@ export async function write(result: string | string[]): Promise<void> {
 // process -l option
 export async function processLine(
   cmds: string[],
-  lineList: Range[],
+  ranges: Range[],
   lineEnd: string
 ): Promise<void> {
   let exitCode = 0;
@@ -83,14 +83,14 @@ export async function processLine(
   if (input.isOk()) {
     const lines = input.value.slice(0, -1).split(lineEnd);
 
-    let range = lineList.shift();
+    let range = ranges.shift();
     let low = range ? range.low : Range.MAX;
     let high = range ? range.high : Range.MAX;
 
     for (const [index, line] of lines.entries()) {
       const n = index + 1;
       if (high < n) {
-        range = lineList.shift();
+        range = ranges.shift();
         low = range ? range.low : Range.MAX;
         high = range ? range.high : Range.MAX;
       }
@@ -165,4 +165,55 @@ export async function processRegexLine(
 
     Deno.exit(exitCode);
   }
+}
+
+export async function processRegexPattern(
+  cmds: string[],
+  pattern: string,
+  invert: boolean,
+  lineEnd: string
+): Promise<void> {
+  let exitCode = 0;
+  const input = await readStdIn();
+  const res: string[] = [];
+
+  if (input.isErr()) {
+    write(input.value);
+    exitCode = 1;
+  }
+
+  if (input.isOk()) {
+    const lines = input.value.slice(0, -1).split(lineEnd);
+    const regex = new RegExp(pattern);
+
+    loop: for (const line of lines) {
+      const ranges = Range.fromRegex(line, pattern, invert);
+      let subString = "";
+      let last = 0;
+      for (const range of ranges) {
+        const low = range.low - 1;
+        const high = range.high - 1;
+
+        const notMatchedPart = line.slice(last, low);
+        const matchedPart = line.slice(low, high + 1);
+
+        const processed = await execCommands(cmds, matchedPart);
+
+        if (processed.isOk()) {
+          subString += notMatchedPart + processed.value;
+        }
+        if (processed.isErr()) {
+          res.push(processed.value);
+          break loop;
+        }
+        last = high + 1;
+      }
+      // add remained not matched part
+      subString += line.slice(last, line.length);
+      res.push(subString);
+    }
+  }
+  await write(res);
+
+  Deno.exit(exitCode);
 }
