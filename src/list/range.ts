@@ -113,7 +113,7 @@ export class Range {
 
     const n = ranges.length;
     if (!n) {
-      return complements;
+      return [Range.ALL];
     }
 
     const first = ranges[0];
@@ -136,5 +136,34 @@ export class Range {
       }
     }
     return complements;
+  }
+
+  static fromRegex(
+    line: string,
+    pattern: string,
+    complement: boolean
+  ): Range[] {
+    const ranges: Range[] = [];
+    let left = 1;
+    let right = 1;
+    const regex = new RegExp(pattern, "g");
+
+    for (
+      let matched = regex.exec(line);
+      matched != null;
+      matched = regex.exec(line)
+    ) {
+      const n = matched[0].length;
+      const last = regex.lastIndex;
+
+      right = last == line.length ? Range.MAX : last;
+      left = last - (n - 1);
+
+      ranges.push(new Range(left, right));
+    }
+    if (complement) {
+      return this.complement(ranges);
+    }
+    return ranges;
   }
 }

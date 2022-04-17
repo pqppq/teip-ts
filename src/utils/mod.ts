@@ -8,8 +8,6 @@ export function parse(args: string[]): mod.Args {
     default: {},
   };
   const argv = mod.parse(args, options);
-  // escape back slash
-  argv["--"] = argv["--"].map((v: string) => v.replace("\\", "\\\\"));
 
   args.forEach((value, index) => {
     // option like -f -12,3 is parsed as {'f': '', '1': true, '2': ',3'}

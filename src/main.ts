@@ -1,8 +1,13 @@
 import { parse } from "./utils/mod.ts";
 import { Range } from "./list/range.ts";
-import { toRanges } from "./utils/converter.ts";
+import { listToRanges } from "./utils/converter.ts";
 import { Result, Ok, Err } from "./utils/result.ts";
-import { write, processLine, processRegexLine } from "./utils/process.ts";
+import {
+  write,
+  processLine,
+  processRegexLine,
+  processRegexPattern,
+} from "./utils/process.ts";
 
 //  --help          Display this help and exit
 //  --version       Show version and exit
@@ -59,7 +64,7 @@ async function main(): Promise<void> {
 
   const c = args["c"];
   const charList: Result<Range[], string> =
-    c != undefined ? toRanges("-c", c, flagInvert) : new Ok([Range.ALL]);
+    c != undefined ? listToRanges("-c", c, flagInvert) : new Ok([Range.ALL]);
   if (charList.isErr()) {
     write(charList.value);
     Deno.exit(1);
@@ -67,7 +72,7 @@ async function main(): Promise<void> {
 
   const f = args["f"];
   const fieldList: Result<Range[], string> =
-    f != undefined ? toRanges("-f", f, flagInvert) : new Ok([Range.ALL]);
+    f != undefined ? listToRanges("-f", f, flagInvert) : new Ok([Range.ALL]);
   if (fieldList.isErr()) {
     write(fieldList.value);
     Deno.exit(1);
@@ -75,7 +80,7 @@ async function main(): Promise<void> {
 
   const l = args["l"];
   const lineList: Result<Range[], string> =
-    l != undefined ? toRanges("-l", l, flagInvert) : new Ok([Range.ALL]);
+    l != undefined ? listToRanges("-l", l, flagInvert) : new Ok([Range.ALL]);
   if (lineList.isErr()) {
     write(lineList.value);
     Deno.exit(1);
@@ -92,31 +97,35 @@ async function main(): Promise<void> {
     Number(flagChar) +
     Number(flagLines) +
     Number(flagField);
-  if (flags != 1) {
+
+  if (
+    flags != 1 ||
+    ((flagOnly || flagOnig) && !flagRegex) ||
+    ((flagDelimiter || flagRegexDelimiter) && !flagField)
+  ) {
     write("teip: Invalid arguments.");
     Deno.exit(1);
   }
 
-  // read from stdin
   if (flagLines) {
     // -l <list>
     await processLine(cmds, lineList.value, lineEnd);
-  } else if (flagRegex) {
-    if (!flagOnly) {
-      if (flagOnig) {
-        // -g <pattern> -G
-        // TODO
-      } else {
-        // -g <pattern>
-        await processRegexLine(cmds, regex.value, flagInvert, lineEnd);
-      }
+  } else if (!flagOnly && flagRegex) {
+    if (flagOnig) {
+      // -g <pattern> -G
+      // TODO
     } else {
-      // -g <pattern> -G -o
+      // -g <pattern>
+      await processRegexLine(cmds, regex.value, flagInvert, lineEnd);
+    }
+  } else {
+    if (flagRegex) {
       if (flagOnig) {
+        // -g <pattern> -G -o
         // TODO
       } else {
         // -g <pattern> -o
-        // TODO
+        await processRegexPattern(cmds, regex.value, flagInvert, lineEnd);
       }
     }
   }
