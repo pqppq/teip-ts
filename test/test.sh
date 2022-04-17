@@ -7,9 +7,15 @@ setup() {
 }
 
 
-@test 'fail -c' {
+@test 'fail -c 2-1' {
 	run deno run -q --allow-run $main -c 2-1
 	assert_failure
+}
+
+@test 'fail -c 1-2 -f 1-2' {
+	actual=`echo -e '111\n222\n333\n444\n555\n666' | deno run -q --allow-run $main -l 2,4-5 -- sed 's/./@/'`
+	expected=`echo -e '111\n@22\n333\n@44\n@55\n666\n'`
+	assert_equal "$actual" "$expected"
 }
 
 @test '-l' {
@@ -18,9 +24,21 @@ expected=`echo -e '111\n@22\n333\n@44\n@55\n666\n'`
 assert_equal "$actual" "$expected"
 }
 
+@test '-l -v' {
+actual=`echo -e '111\n222\n333\n444\n555\n666' | deno run -q --allow-run $main -l 2,4-5 -v -- sed 's/./@/'`
+expected=`echo -e '@11\n222\n@33\n444\n555\n@66\n'`
+assert_equal "$actual" "$expected"
+}
+
 @test '-g' {
-	actual=`echo -e ABC\nDFE\nBCC\nCCA\n | deno run -q --allow-run $main -g [AB] -- sed 's/./@/'`
+	actual=`echo -e 'ABC\nDFE\nBCC\nCCA\n' | deno run -q --allow-run $main -g '[AB]' -- sed 's/./@/'`
 	expected=`echo -e '@BC\nDFE\n@CC\n@CA\n'`
+	assert_equal "$actual" "$expected"
+}
+
+@test '-g -v' {
+	actual=`echo -e 'ABC\nDFE\nBCC\nCCA\n' | deno run -q --allow-run $main -g '[AB]' -v -- sed 's/./@/'`
+	expected=`echo -e 'ABC\n@FE\nBCC\nCCA\n'`
 	assert_equal "$actual" "$expected"
 }
 
