@@ -42,6 +42,9 @@ async function execCommands(
     return new Err("teip: Commands failed");
   }
   if (output.length == 0) {
+    if (input.length == 0) {
+      return new Ok("");
+    }
     return new Err("teip: Output of given commands is exhausted");
   }
   return new Ok(utf8Decode(output));
