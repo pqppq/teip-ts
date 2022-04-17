@@ -184,7 +184,6 @@ export async function processRegexPattern(
 
   if (input.isOk()) {
     const lines = input.value.slice(0, -1).split(lineEnd);
-    const regex = new RegExp(pattern);
 
     loop: for (const line of lines) {
       const ranges = Range.fromRegex(line, pattern, invert);
