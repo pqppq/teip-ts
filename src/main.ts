@@ -47,7 +47,7 @@ async function main(): Promise<void> {
   let lineEnd = "\n";
   // NUL is used as line delimiter
   if (flagZero) {
-    lineEnd = String.fromCharCode(0, 16); // NUL character
+    lineEnd = "\x00"; // NUL character
   }
 
   const g = args["g"];
@@ -99,6 +99,7 @@ async function main(): Promise<void> {
     Number(flagField);
 
   if (
+    rest ||
     flags != 1 ||
     ((flagOnly || flagOnig) && !flagRegex) ||
     ((flagDelimiter || flagRegexDelimiter) && !flagField)
