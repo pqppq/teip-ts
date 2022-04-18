@@ -50,18 +50,21 @@ async function execCommands(
   return new Ok(utf8Decode(output));
 }
 
-export async function write(result: string | string[]): Promise<void> {
+export async function write(
+  result: string | string[],
+  lineEnd: string
+): Promise<void> {
   const output =
     typeof result == "object"
       ? result
           .map((l) => {
-            if (l.slice(-1) == "\n") {
+            if (l.slice(-1) == lineEnd) {
               return l.slice(0, -1);
             }
             return l;
           })
-          .join("\n") + "\n"
-      : result + "\n";
+          .join(lineEnd) + lineEnd
+      : result + lineEnd;
   await Deno.stdout.write(utf8Encode(output));
 }
 
@@ -76,7 +79,7 @@ export async function processLine(
   const res: string[] = [];
 
   if (input.isErr()) {
-    write(input.value);
+    write(input.value, "\n");
     exitCode = 1;
   }
 
@@ -108,7 +111,7 @@ export async function processLine(
     }
   }
 
-  await write(res);
+  await write(res, lineEnd);
 
   Deno.exit(exitCode);
 }
@@ -124,7 +127,7 @@ export async function processRegexLine(
   const res: string[] = [];
 
   if (input.isErr()) {
-    write(input.value);
+    write(input.value, "\n");
     exitCode = 1;
   }
 
@@ -156,10 +159,10 @@ export async function processRegexLine(
       }
     }
 
-    await write(res);
+    await write(res, lineEnd);
 
     if (input.isErr()) {
-      write(input.value);
+      write(input.value, "\n");
       exitCode = 1;
     }
 
@@ -178,7 +181,7 @@ export async function processRegexPattern(
   const res: string[] = [];
 
   if (input.isErr()) {
-    write(input.value);
+    write(input.value, "\n");
     exitCode = 1;
   }
 
@@ -212,7 +215,7 @@ export async function processRegexPattern(
       res.push(subString);
     }
   }
-  await write(res);
+  await write(res, lineEnd);
 
   Deno.exit(exitCode);
 }

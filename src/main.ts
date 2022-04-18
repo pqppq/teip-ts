@@ -66,7 +66,7 @@ async function main(): Promise<void> {
   const charList: Result<Range[], string> =
     c != undefined ? listToRanges("-c", c, flagInvert) : new Ok([Range.ALL]);
   if (charList.isErr()) {
-    write(charList.value);
+    write(charList.value, "\n");
     Deno.exit(1);
   }
 
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
   const fieldList: Result<Range[], string> =
     f != undefined ? listToRanges("-f", f, flagInvert) : new Ok([Range.ALL]);
   if (fieldList.isErr()) {
-    write(fieldList.value);
+    write(fieldList.value, "\n");
     Deno.exit(1);
   }
 
@@ -82,7 +82,7 @@ async function main(): Promise<void> {
   const lineList: Result<Range[], string> =
     l != undefined ? listToRanges("-l", l, flagInvert) : new Ok([Range.ALL]);
   if (lineList.isErr()) {
-    write(lineList.value);
+    write(lineList.value, "\n");
     Deno.exit(1);
   }
 
@@ -104,7 +104,7 @@ async function main(): Promise<void> {
     ((flagOnly || flagOnig) && !flagRegex) ||
     ((flagDelimiter || flagRegexDelimiter) && !flagField)
   ) {
-    write("teip: Invalid arguments.");
+    write("teip: Invalid arguments.", "\n");
     Deno.exit(1);
   }
 
