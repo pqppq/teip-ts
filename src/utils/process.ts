@@ -26,7 +26,8 @@ async function readStdIn(): Promise<Result<string, string>> {
 
 async function execCommands(
   command: string[],
-  input: string
+  input: string,
+  lineEnd: string
 ): Promise<Result<string, string>> {
   const p = Deno.run({
     cmd: ["bash"],
@@ -36,18 +37,18 @@ async function execCommands(
   });
   await p.stdin?.write(utf8Encode(`echo -n '${input}' | ${command.join(" ")}`));
   await p.stdin?.close();
-  const exitCode = (await p.status()).code;
   const output = await p.output();
-  if (exitCode == 1) {
-    return new Err("teip: Commands failed");
-  }
   if (output.length == 0) {
     if (input.length == 0) {
       return new Ok("");
     }
     return new Err("teip: Output of given commands is exhausted");
   }
-  return new Ok(utf8Decode(output));
+  let str = utf8Decode(output);
+  if (str.slice(-1) == lineEnd) {
+    str = str.slice(0, -1);
+  }
+  return new Ok(str);
 }
 
 export async function write(
@@ -98,7 +99,7 @@ export async function processLine(
         high = range ? range.high : Range.MAX;
       }
       if (low <= n && n <= high) {
-        const output = await execCommands(cmds, line);
+        const output = await execCommands(cmds, line, lineEnd);
 
         res.push(output.value);
         if (output.isErr()) {
@@ -126,11 +127,6 @@ export async function processRegexLine(
   const input = await readStdIn();
   const res: string[] = [];
 
-  if (input.isErr()) {
-    write(input.value, "\n");
-    exitCode = 1;
-  }
-
   if (input.isOk()) {
     const lines = input.value.slice(0, -1).split(lineEnd);
 
@@ -142,11 +138,11 @@ export async function processRegexLine(
         if (invert) {
           output = new Ok(line);
         } else {
-          output = await execCommands(cmds, line);
+          output = await execCommands(cmds, line, lineEnd);
         }
       } else {
         if (invert) {
-          output = await execCommands(cmds, line);
+          output = await execCommands(cmds, line, lineEnd);
         } else {
           output = new Ok(line);
         }
@@ -180,11 +176,6 @@ export async function processRegexPattern(
   const input = await readStdIn();
   const res: string[] = [];
 
-  if (input.isErr()) {
-    write(input.value, "\n");
-    exitCode = 1;
-  }
-
   if (input.isOk()) {
     const lines = input.value.slice(0, -1).split(lineEnd);
 
@@ -199,12 +190,13 @@ export async function processRegexPattern(
         const notMatchedPart = line.slice(last, low);
         const matchedPart = line.slice(low, high + 1);
 
-        const processed = await execCommands(cmds, matchedPart);
+        const processed = await execCommands(cmds, matchedPart, lineEnd);
 
         if (processed.isOk()) {
           subString += notMatchedPart + processed.value;
         }
         if (processed.isErr()) {
+          res.push(subString);
           res.push(processed.value);
           break loop;
         }
@@ -216,6 +208,11 @@ export async function processRegexPattern(
     }
   }
   await write(res, lineEnd);
+
+  if (input.isErr()) {
+    write(input.value, "\n");
+    exitCode = 1;
+  }
 
   Deno.exit(exitCode);
 }
