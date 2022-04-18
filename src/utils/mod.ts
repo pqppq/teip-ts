@@ -22,5 +22,9 @@ export function parse(args: string[]): mod.Args {
     }
   });
 
+  argv["--"] = argv["--"].map((v: string) => {
+    return v.match(/.+;$/) ? `'${v}'` : v;
+  });
+
   return argv;
 }

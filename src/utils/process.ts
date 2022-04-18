@@ -34,7 +34,7 @@ async function execCommands(
     stdout: "piped",
     stderr: "inherit",
   });
-  await p.stdin?.write(utf8Encode(`echo -n ${input} | ${command.join(" ")}`));
+  await p.stdin?.write(utf8Encode(`echo -n '${input}' | ${command.join(" ")}`));
   await p.stdin?.close();
   const exitCode = (await p.status()).code;
   const output = await p.output();
