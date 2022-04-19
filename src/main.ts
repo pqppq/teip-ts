@@ -7,6 +7,7 @@ import {
   processLine,
   processRegexLine,
   processRegexPattern,
+  processChar,
 } from "./utils/process.ts";
 
 //  --help          Display this help and exit
@@ -110,14 +111,14 @@ async function main(): Promise<void> {
 
   if (flagLines) {
     // -l <list>
-    await processLine(cmds, lineList.value, lineEnd);
+    await processLine(cmds, lineList.value, flagSolid, lineEnd);
   } else if (!flagOnly && flagRegex) {
     if (flagOnig) {
       // -g <pattern> -G
       // TODO
     } else {
       // -g <pattern>
-      await processRegexLine(cmds, regex.value, flagInvert, lineEnd);
+      await processRegexLine(cmds, regex.value, flagInvert, flagSolid, lineEnd);
     }
   } else {
     if (flagRegex) {
@@ -126,8 +127,16 @@ async function main(): Promise<void> {
         // TODO
       } else {
         // -g <pattern> -o
-        await processRegexPattern(cmds, regex.value, flagInvert, lineEnd);
+        await processRegexPattern(
+          cmds,
+          regex.value,
+          flagInvert,
+          flagSolid,
+          lineEnd
+        );
       }
+    } else if (flagChar) {
+      await processChar(cmds, charList.value, flagSolid, lineEnd);
     }
   }
 }

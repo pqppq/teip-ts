@@ -27,6 +27,7 @@ async function readStdIn(): Promise<Result<string, string>> {
 async function execCommands(
   command: string[],
   input: string,
+  solid: boolean,
   lineEnd: string
 ): Promise<Result<string, string>> {
   const p = Deno.run({
@@ -39,7 +40,7 @@ async function execCommands(
   await p.stdin?.close();
   const output = await p.output();
   if (output.length == 0) {
-    if (input.length == 0) {
+    if (input.length == 0 || solid) {
       return new Ok("");
     }
     return new Err("teip: Output of given commands is exhausted");
@@ -73,19 +74,15 @@ export async function write(
 export async function processLine(
   cmds: string[],
   ranges: Range[],
+  solid: boolean,
   lineEnd: string
 ): Promise<void> {
   let exitCode = 0;
   const input = await readStdIn();
   const res: string[] = [];
 
-  if (input.isErr()) {
-    write(input.value, "\n");
-    exitCode = 1;
-  }
-
   if (input.isOk()) {
-    const lines = input.value.slice(0, -1).split(lineEnd);
+    const lines = input.value.split(lineEnd);
 
     let range = ranges.shift();
     let low = range ? range.low : Range.MAX;
@@ -99,7 +96,7 @@ export async function processLine(
         high = range ? range.high : Range.MAX;
       }
       if (low <= n && n <= high) {
-        const output = await execCommands(cmds, line, lineEnd);
+        const output = await execCommands(cmds, line, solid, lineEnd);
 
         res.push(output.value);
         if (output.isErr()) {
@@ -114,13 +111,20 @@ export async function processLine(
 
   await write(res, lineEnd);
 
+  if (input.isErr()) {
+    write(input.value, "\n");
+    exitCode = 1;
+  }
+
   Deno.exit(exitCode);
 }
 
+// process -g option
 export async function processRegexLine(
   cmds: string[],
   regex: string,
   invert: boolean,
+  solid: boolean,
   lineEnd: string
 ): Promise<void> {
   let exitCode = 0;
@@ -128,7 +132,7 @@ export async function processRegexLine(
   const res: string[] = [];
 
   if (input.isOk()) {
-    const lines = input.value.slice(0, -1).split(lineEnd);
+    const lines = input.value.split(lineEnd);
 
     for (const line of lines) {
       const matched = line.match(regex);
@@ -138,11 +142,11 @@ export async function processRegexLine(
         if (invert) {
           output = new Ok(line);
         } else {
-          output = await execCommands(cmds, line, lineEnd);
+          output = await execCommands(cmds, line, solid, lineEnd);
         }
       } else {
         if (invert) {
-          output = await execCommands(cmds, line, lineEnd);
+          output = await execCommands(cmds, line, solid, lineEnd);
         } else {
           output = new Ok(line);
         }
@@ -166,10 +170,12 @@ export async function processRegexLine(
   }
 }
 
+// process -og
 export async function processRegexPattern(
   cmds: string[],
   pattern: string,
   invert: boolean,
+  solid: boolean,
   lineEnd: string
 ): Promise<void> {
   let exitCode = 0;
@@ -177,7 +183,7 @@ export async function processRegexPattern(
   const res: string[] = [];
 
   if (input.isOk()) {
-    const lines = input.value.slice(0, -1).split(lineEnd);
+    const lines = input.value.split(lineEnd);
 
     loop: for (const line of lines) {
       const ranges = Range.fromRegex(line, pattern, invert);
@@ -190,10 +196,11 @@ export async function processRegexPattern(
         const notMatchedPart = line.slice(last, low);
         const matchedPart = line.slice(low, high + 1);
 
-        const processed = await execCommands(cmds, matchedPart, lineEnd);
+        const processed = await execCommands(cmds, matchedPart, solid, lineEnd);
 
+        subString += notMatchedPart;
         if (processed.isOk()) {
-          subString += notMatchedPart + processed.value;
+          subString += processed.value;
         }
         if (processed.isErr()) {
           res.push(subString);
@@ -207,6 +214,64 @@ export async function processRegexPattern(
       res.push(subString);
     }
   }
+  await write(res, lineEnd);
+
+  if (input.isErr()) {
+    write(input.value, "\n");
+    exitCode = 1;
+  }
+
+  Deno.exit(exitCode);
+}
+
+// process -c option
+export async function processChar(
+  cmds: string[],
+  ranges: Range[],
+  solid: boolean,
+  lineEnd: string
+): Promise<void> {
+  let exitCode = 0;
+  const input = await readStdIn();
+  const res: string[] = [];
+
+  if (input.isOk()) {
+    const lines = input.value.split(lineEnd);
+
+    loop: for (const line of lines) {
+      let subString = "";
+      let last = 0;
+      for (const range of ranges) {
+        const low = range.low - 1;
+        const high = range.high - 1;
+
+        const notSelectedPart = line.slice(last, low);
+        const selectedPart = line.slice(low, high + 1);
+
+        const processed = await execCommands(
+          cmds,
+          selectedPart,
+          solid,
+          lineEnd
+        );
+
+        subString += notSelectedPart;
+        if (processed.isOk()) {
+          subString += processed.value;
+        }
+        if (processed.isErr()) {
+          res.push(subString);
+          res.push(processed.value);
+          break loop;
+        }
+        last = high + 1;
+      }
+      // add remained not matched part
+      subString += line.slice(last, line.length);
+      res.push(subString);
+    }
+  }
+
   await write(res, lineEnd);
 
   if (input.isErr()) {
