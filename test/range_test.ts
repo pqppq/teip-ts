@@ -8,6 +8,13 @@ Deno.test("range test from list", () => {
   assertEquals(actual, expected);
 });
 
+Deno.test("range test from list", () => {
+  const range = Range.fromList("1-2,3-4,6-7");
+  const actual = range.value;
+  const expected = [new Range(1, 4), new Range(6, 7)];
+  assertEquals(actual, expected);
+});
+
 Deno.test("range test from list -v", () => {
   const range = Range.fromList("1-2,5-7");
   const actual = range.isOk()
@@ -46,5 +53,13 @@ Deno.test("range test from regex [a-z]+ -v", () => {
   const pattern = "[a-z]+";
   const actual = Range.fromRegex(line, pattern, true);
   const expected = [new Range(1, 3), new Range(7, 9)];
+  assertEquals(actual, expected);
+});
+
+Deno.test("range test from regex .\\n.", () => {
+  const line = "ABC\nDEF\nGHI\nJKL\n";
+  const pattern = ".\n.";
+  const actual = Range.fromRegex(line, pattern, false);
+  const expected = [new Range(3, 5), new Range(7, 9), new Range(11, 13)];
   assertEquals(actual, expected);
 });
