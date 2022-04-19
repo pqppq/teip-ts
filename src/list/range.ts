@@ -98,7 +98,8 @@ export class Range {
     for (let i = 0; i < ranges.length; i++) {
       const j = i + 1;
 
-      while (j < ranges.length && ranges[j].low <= ranges[i].high) {
+      // while (j < ranges.length && ranges[j].low <= ranges[i].high) {
+      while (j < ranges.length && ranges[j].low <= ranges[i].high + 1) {
         const high_j = ranges.splice(j, 1)[0].high;
         ranges[i].high = Math.max(high_j, ranges[i].high);
       }
