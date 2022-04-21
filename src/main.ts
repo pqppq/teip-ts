@@ -8,6 +8,8 @@ import {
   processRegexLine,
   processRegexPattern,
   processChar,
+  processField,
+  processRegexField,
 } from "./utils/process.ts";
 
 //  --help          Display this help and exit
@@ -137,7 +139,25 @@ async function main(): Promise<void> {
         // TODO
       } else {
         // -g <pattern> -o
-        await processRegexPattern(
+        const regex = new RegExp(regexPattern.value, "g");
+        await processRegexPattern(cmds, regex, flagInvert, flagSolid, lineEnd);
+      }
+    } else if (flagChar) {
+      // -c <list>
+      await processChar(cmds, charList.value, flagSolid, lineEnd);
+    } else if (flagField) {
+      if (flagDelimiter) {
+        // -f <list> -d <delimiter>
+        await processField(
+          cmds,
+          fieldList.value,
+          delimiter,
+          flagSolid,
+          lineEnd
+        );
+      } else {
+        // -f <list> -D <pattern>
+        await processRegexField(
           cmds,
           fieldList.value,
           regexDelimiter,
@@ -145,8 +165,6 @@ async function main(): Promise<void> {
           lineEnd
         );
       }
-    } else if (flagChar) {
-      await processChar(cmds, charList.value, flagSolid, lineEnd);
     }
   }
 }

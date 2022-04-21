@@ -283,3 +283,110 @@ export async function processChar(
 
   Deno.exit(exitCode);
 }
+
+// process -f -d <delimiter>
+export async function processField(
+  cmds: string[],
+  ranges: Range[],
+  delimiter: string,
+  solid: boolean,
+  lineEnd: string
+): Promise<void> {
+  let exitCode = 0;
+  const input = await readStdIn();
+  const res: string[] = [];
+  if (input.isOk()) {
+    const lines = input.value.split(lineEnd);
+    loop: for (const line of lines) {
+      const parts = line.split(delimiter);
+      let ri = 0;
+      const subString = [];
+
+      for (const [i, part] of parts.entries()) {
+        if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
+          ri += 1;
+        }
+        if (ranges[ri].low <= i + 1 && i + 1 <= ranges[ri].high) {
+          const processed = await execCommands(cmds, part, solid, lineEnd);
+          if (processed.isOk()) {
+            subString.push(processed.value);
+          }
+          if (processed.isErr()) {
+            res.push(subString.join(delimiter));
+            res.push(processed.value);
+            break loop;
+          }
+        } else {
+          subString.push(part);
+        }
+      }
+      res.push(subString.join(delimiter));
+    }
+  }
+
+  await write(res, lineEnd);
+
+  if (input.isErr()) {
+    write(input.value, "\n");
+    exitCode = 1;
+  }
+
+  Deno.exit(exitCode);
+}
+
+// process -f -D <pattern>
+export async function processRegexField(
+  cmds: string[],
+  ranges: Range[],
+  regexDelimiter: RegExp,
+  solid: boolean,
+  lineEnd: string
+): Promise<void> {
+  let exitCode = 0;
+  const input = await readStdIn();
+  const res: string[] = [];
+
+  if (input.isOk()) {
+    const lines = input.value.split(lineEnd);
+
+    loop: for (const line of lines) {
+      const parts = line.split(regexDelimiter);
+      const delimiters = line.match(regexDelimiter);
+      let subString = "";
+      let ri = 0;
+
+      for (let [i, part] of parts.entries()) {
+        if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
+          ri += 1;
+        }
+        if (ranges[ri].low <= i + 1 && i + 1 <= ranges[ri].high) {
+          if (part == "") {
+            part = " ";
+          }
+          const processed = await execCommands(cmds, part, solid, lineEnd);
+          if (processed.isOk()) {
+            subString += processed.value;
+          }
+          if (processed.isErr()) {
+            res.push(subString);
+            res.push(processed.value);
+            break loop;
+          }
+        } else {
+          subString += part;
+        }
+        const delimiter = delimiters?.length ? delimiters.shift() : "";
+        subString += delimiter;
+      }
+      res.push(subString);
+    }
+  }
+  await write(res, lineEnd);
+
+  if (input.isErr()) {
+    write(input.value, "\n");
+    exitCode = 1;
+  }
+
+  Deno.exit(exitCode);
+}
