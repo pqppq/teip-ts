@@ -122,6 +122,8 @@ async function main(): Promise<void> {
     if (flagOnig) {
       // -g <pattern> -G
       // TODO
+      write("Oniguruma option is not supported now.", "\n");
+      Deno.exit(1);
     } else {
       // -g <pattern>
       await processRegexLine(
@@ -137,6 +139,8 @@ async function main(): Promise<void> {
       if (flagOnig) {
         // -g <pattern> -G -o
         // TODO
+        write("Oniguruma option is not supported now.", "\n");
+        Deno.exit(1);
       } else {
         // -g <pattern> -o
         const regex = new RegExp(regexPattern.value, "g");
