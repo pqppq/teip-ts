@@ -173,7 +173,7 @@ export async function processRegexLine(
 // process -og
 export async function processRegexPattern(
   cmds: string[],
-  pattern: string,
+  regex: RegExp,
   invert: boolean,
   solid: boolean,
   lineEnd: string
@@ -186,7 +186,7 @@ export async function processRegexPattern(
     const lines = input.value.split(lineEnd);
 
     loop: for (const line of lines) {
-      const ranges = Range.fromRegex(line, pattern, invert);
+      const ranges = Range.fromRegex(line, regex, invert);
       let subString = "";
       let last = 0;
       for (const range of ranges) {
@@ -203,6 +203,7 @@ export async function processRegexPattern(
           subString += processed.value;
         }
         if (processed.isErr()) {
+          exitCode = 1;
           res.push(subString);
           res.push(processed.value);
           break loop;
@@ -260,6 +261,7 @@ export async function processChar(
           subString += processed.value;
         }
         if (processed.isErr()) {
+          exitCode = 1;
           res.push(subString);
           res.push(processed.value);
           break loop;

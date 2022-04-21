@@ -45,6 +45,23 @@ async function main(): Promise<void> {
   const flagDelimiter = args["d"] ? true : false;
   const flagRegexDelimiter = args["D"] ? true : false;
 
+  const flags =
+    Number(flagRegex) +
+    Number(flagChar) +
+    Number(flagLines) +
+    Number(flagField);
+
+  if (
+    rest ||
+    flags != 1 ||
+    ((flagOnly || flagOnig) && !flagRegex) ||
+    ((flagDelimiter || flagRegexDelimiter) && !flagField) ||
+    (flagDelimiter && flagRegexDelimiter && flagField)
+  ) {
+    write("teip: Invalid arguments.", "\n");
+    Deno.exit(1);
+  }
+
   let lineEnd = "\n";
   // NUL is used as line delimiter
   if (flagZero) {
@@ -52,13 +69,13 @@ async function main(): Promise<void> {
   }
 
   const g = args["g"];
-  let regex: Result<string, string>;
+  let regexPattern: Result<string, string>;
   if (g == "") {
-    regex = new Ok("");
+    regexPattern = new Ok("");
   } else if (g != "") {
-    regex = new Ok(g);
+    regexPattern = new Ok(g);
   } else {
-    regex = new Err(
+    regexPattern = new Ok(
       "teip: Expected argument for flag '-g' but reached end of arguments."
     );
   }
@@ -88,26 +105,13 @@ async function main(): Promise<void> {
   }
 
   const d = args["d"];
-  const regexDelimiter: RegExp = d ? new RegExp(d) : /\s+/;
+  const D = args["D"];
+  const delimiter = d ? d : "";
+  const regexDelimiter = D ? new RegExp(D, "g") : new RegExp("\\s+", "g");
 
   const flagDryrun: boolean = !cmds.length;
 
   // ***** Start processing *****
-  const flags =
-    Number(flagRegex) +
-    Number(flagChar) +
-    Number(flagLines) +
-    Number(flagField);
-
-  if (
-    rest ||
-    flags != 1 ||
-    ((flagOnly || flagOnig) && !flagRegex) ||
-    ((flagDelimiter || flagRegexDelimiter) && !flagField)
-  ) {
-    write("teip: Invalid arguments.", "\n");
-    Deno.exit(1);
-  }
 
   if (flagLines) {
     // -l <list>
@@ -118,7 +122,13 @@ async function main(): Promise<void> {
       // TODO
     } else {
       // -g <pattern>
-      await processRegexLine(cmds, regex.value, flagInvert, flagSolid, lineEnd);
+      await processRegexLine(
+        cmds,
+        regexPattern.value,
+        flagInvert,
+        flagSolid,
+        lineEnd
+      );
     }
   } else {
     if (flagRegex) {
@@ -129,8 +139,8 @@ async function main(): Promise<void> {
         // -g <pattern> -o
         await processRegexPattern(
           cmds,
-          regex.value,
-          flagInvert,
+          fieldList.value,
+          regexDelimiter,
           flagSolid,
           lineEnd
         );
