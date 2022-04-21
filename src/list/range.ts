@@ -139,15 +139,10 @@ export class Range {
     return complements;
   }
 
-  static fromRegex(
-    line: string,
-    pattern: string,
-    complement: boolean
-  ): Range[] {
+  static fromRegex(line: string, regex: RegExp, complement: boolean): Range[] {
     const ranges: Range[] = [];
     let left = 1;
     let right = 1;
-    const regex = new RegExp(pattern, "g");
 
     for (
       let matched = regex.exec(line);
