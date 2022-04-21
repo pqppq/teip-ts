@@ -22,9 +22,13 @@ export function parse(args: string[]): mod.Args {
     }
   });
 
-  argv["--"] = argv["--"].map((v: string) => {
-    return v.match(/[;\s]/) ? `'${v}'` : v;
-  });
+  argv["--"] = argv["--"]
+    .map((v: string) => {
+      return v.match(/[;\s]/) ? `'${v}'` : v;
+    })
+    .map((v: string) => {
+      return v.replace(/([#|`<>&])/, "\\$1");
+    });
 
   return argv;
 }
