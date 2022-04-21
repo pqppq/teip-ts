@@ -162,4 +162,29 @@ export class Range {
     }
     return ranges;
   }
+  static fromDelimiter(
+    line: string,
+    delimiter: string,
+    complement: boolean
+  ): Range[] {
+    const ranges: Range[] = [];
+    let left = 1;
+
+    const parts = line.split(delimiter);
+
+    for (const part of parts) {
+      const n = part.length;
+      let right = left + (n - 1);
+
+      if (right == line.length) {
+        right = Range.MAX;
+      }
+      ranges.push(new Range(left, right));
+      left += n + delimiter.length;
+    }
+    if (complement) {
+      return this.complement(ranges);
+    }
+    return ranges;
+  }
 }
