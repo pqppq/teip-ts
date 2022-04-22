@@ -9,3 +9,11 @@ Exept Oniguruma option(-G) and some type of input, this support original options
 - Control input by a single Deno.run
   - For now, Deno.run process is created for each input token.
 - Support dryrun
+
+# Test
+Use [bats-core](https://github.com/bats-core/bats-core) for test.
+For more information, please see [bats-core’s documentation](https://bats-core.readthedocs.io/en/stable/index.html)
+
+```
+$ bats ./test/test.sh
+```
