@@ -25,10 +25,14 @@ async function readStdIn(): Promise<Result<string, string>> {
     return new Err("teip: No input from stdin.");
   }
 
-  const input = utf8Decode(buffer.subarray(0, n));
+  let input = utf8Decode(buffer.subarray(0, n));
 
   if (input.length == 0) {
     return new Err("teip: Invalid arguments.");
+  }
+
+  if (input.endsWith("\n")) {
+    input = input.slice(0, -1);
   }
 
   return new Ok(input);
