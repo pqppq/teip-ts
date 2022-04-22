@@ -1,6 +1,7 @@
 import { parse } from "./utils/mod.ts";
 import { Range } from "./list/range.ts";
 import { listToRanges } from "./utils/converter.ts";
+
 import { Result, Ok, Err } from "./utils/result.ts";
 import {
   write,
@@ -117,7 +118,7 @@ async function main(): Promise<void> {
 
   if (flagLines) {
     // -l <list>
-    await processLine(cmds, lineList.value, flagSolid, lineEnd);
+    await processLine(cmds, lineList.value, flagSolid, lineEnd, flagDryrun);
   } else if (!flagOnly && flagRegex) {
     if (flagOnig) {
       // -g <pattern> -G
@@ -131,7 +132,8 @@ async function main(): Promise<void> {
         regexPattern.value,
         flagInvert,
         flagSolid,
-        lineEnd
+        lineEnd,
+        flagDryrun
       );
     }
   } else {
@@ -144,11 +146,18 @@ async function main(): Promise<void> {
       } else {
         // -g <pattern> -o
         const regex = new RegExp(regexPattern.value, "g");
-        await processRegexPattern(cmds, regex, flagInvert, flagSolid, lineEnd);
+        await processRegexPattern(
+          cmds,
+          regex,
+          flagInvert,
+          flagSolid,
+          lineEnd,
+          flagDryrun
+        );
       }
     } else if (flagChar) {
       // -c <list>
-      await processChar(cmds, charList.value, flagSolid, lineEnd);
+      await processChar(cmds, charList.value, flagSolid, lineEnd, flagDryrun);
     } else if (flagField) {
       if (flagDelimiter) {
         // -f <list> -d <delimiter>
@@ -157,7 +166,8 @@ async function main(): Promise<void> {
           fieldList.value,
           delimiter,
           flagSolid,
-          lineEnd
+          lineEnd,
+          flagDryrun
         );
       } else {
         // -f <list> -D <pattern>
@@ -166,7 +176,8 @@ async function main(): Promise<void> {
           fieldList.value,
           regexDelimiter,
           flagSolid,
-          lineEnd
+          lineEnd,
+          flagDryrun
         );
       }
     }

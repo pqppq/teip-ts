@@ -7,6 +7,16 @@ import {
 
 export const DEFAULT_BUF_SIZE = 1024;
 
+enum Color {
+  RED = "\x1b[31m",
+  BLUE = "\x1b[34m",
+  DEFAULT = "\x1b[39m",
+}
+
+function colorize(input: string): string {
+  return `${Color.BLUE}[${Color.RED}${input}${Color.BLUE}]${Color.DEFAULT}`;
+}
+
 // get lines from stdin
 async function readStdIn(): Promise<Result<string, string>> {
   const buffer = new Uint8Array(DEFAULT_BUF_SIZE);
@@ -28,7 +38,8 @@ async function execCommands(
   command: string[],
   input: string,
   solid: boolean,
-  lineEnd: string
+  lineEnd: string,
+  dryrun: boolean
 ): Promise<Result<string, string>> {
   const p = Deno.run({
     cmd: ["bash"],
@@ -36,6 +47,9 @@ async function execCommands(
     stdout: "piped",
     stderr: "inherit",
   });
+  if (dryrun) {
+    return new Ok(colorize(input));
+  }
   await p.stdin?.write(utf8Encode(`echo -n '${input}' | ${command.join(" ")}`));
   await p.stdin?.close();
   const output = await p.output();
@@ -75,7 +89,8 @@ export async function processLine(
   cmds: string[],
   ranges: Range[],
   solid: boolean,
-  lineEnd: string
+  lineEnd: string,
+  dryrun: boolean
 ): Promise<void> {
   let exitCode = 0;
   const input = await readStdIn();
@@ -96,7 +111,7 @@ export async function processLine(
         high = range ? range.high : Range.MAX;
       }
       if (low <= n && n <= high) {
-        const output = await execCommands(cmds, line, solid, lineEnd);
+        const output = await execCommands(cmds, line, solid, lineEnd, dryrun);
 
         res.push(output.value);
         if (output.isErr()) {
@@ -125,7 +140,8 @@ export async function processRegexLine(
   regex: string,
   invert: boolean,
   solid: boolean,
-  lineEnd: string
+  lineEnd: string,
+  dryrun: boolean
 ): Promise<void> {
   let exitCode = 0;
   const input = await readStdIn();
@@ -142,11 +158,11 @@ export async function processRegexLine(
         if (invert) {
           output = new Ok(line);
         } else {
-          output = await execCommands(cmds, line, solid, lineEnd);
+          output = await execCommands(cmds, line, solid, lineEnd, dryrun);
         }
       } else {
         if (invert) {
-          output = await execCommands(cmds, line, solid, lineEnd);
+          output = await execCommands(cmds, line, solid, lineEnd, dryrun);
         } else {
           output = new Ok(line);
         }
@@ -176,7 +192,8 @@ export async function processRegexPattern(
   regex: RegExp,
   invert: boolean,
   solid: boolean,
-  lineEnd: string
+  lineEnd: string,
+  dryrun: boolean
 ): Promise<void> {
   let exitCode = 0;
   const input = await readStdIn();
@@ -196,7 +213,13 @@ export async function processRegexPattern(
         const notMatchedPart = line.slice(last, low);
         const matchedPart = line.slice(low, high + 1);
 
-        const processed = await execCommands(cmds, matchedPart, solid, lineEnd);
+        const processed = await execCommands(
+          cmds,
+          matchedPart,
+          solid,
+          lineEnd,
+          dryrun
+        );
 
         subString += notMatchedPart;
         if (processed.isOk()) {
@@ -230,7 +253,8 @@ export async function processChar(
   cmds: string[],
   ranges: Range[],
   solid: boolean,
-  lineEnd: string
+  lineEnd: string,
+  dryrun: boolean
 ): Promise<void> {
   let exitCode = 0;
   const input = await readStdIn();
@@ -253,7 +277,8 @@ export async function processChar(
           cmds,
           selectedPart,
           solid,
-          lineEnd
+          lineEnd,
+          dryrun
         );
 
         subString += notSelectedPart;
@@ -290,7 +315,8 @@ export async function processField(
   ranges: Range[],
   delimiter: string,
   solid: boolean,
-  lineEnd: string
+  lineEnd: string,
+  dryrun: boolean
 ): Promise<void> {
   let exitCode = 0;
   const input = await readStdIn();
@@ -307,7 +333,13 @@ export async function processField(
           ri += 1;
         }
         if (ranges[ri].low <= i + 1 && i + 1 <= ranges[ri].high) {
-          const processed = await execCommands(cmds, part, solid, lineEnd);
+          const processed = await execCommands(
+            cmds,
+            part,
+            solid,
+            lineEnd,
+            dryrun
+          );
           if (processed.isOk()) {
             subString.push(processed.value);
           }
@@ -340,7 +372,8 @@ export async function processRegexField(
   ranges: Range[],
   regexDelimiter: RegExp,
   solid: boolean,
-  lineEnd: string
+  lineEnd: string,
+  dryrun: boolean
 ): Promise<void> {
   let exitCode = 0;
   const input = await readStdIn();
@@ -363,7 +396,13 @@ export async function processRegexField(
           if (part == "") {
             part = " ";
           }
-          const processed = await execCommands(cmds, part, solid, lineEnd);
+          const processed = await execCommands(
+            cmds,
+            part,
+            solid,
+            lineEnd,
+            dryrun
+          );
           if (processed.isOk()) {
             subString += processed.value;
           }
