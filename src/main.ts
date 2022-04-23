@@ -137,7 +137,7 @@ async function main(): Promise<void> {
     if (flagOnig) {
       // -g <pattern> -G
       // TODO
-      write("Oniguruma option is not supported now.", "\n");
+      write("teip: Oniguruma option is not supported now.", "\n");
       Deno.exit(1);
     } else {
       // -g <pattern>
@@ -156,7 +156,7 @@ async function main(): Promise<void> {
       if (flagOnig) {
         // -g <pattern> -G -o
         // TODO
-        write("Oniguruma option is not supported now.", "\n");
+        write("teip: Oniguruma option is not supported now.", "\n");
         Deno.exit(1);
       } else {
         // -g <pattern> -o
