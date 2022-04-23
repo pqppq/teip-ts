@@ -73,8 +73,7 @@ export async function processLine(
   solid: boolean,
   lineEnd: string,
   dryrun: boolean
-): Promise<void> {
-  let exitCode = 0;
+): Promise<Result<string[], string[]>> {
   const res: string[] = [];
 
   let range = ranges.shift();
@@ -93,17 +92,14 @@ export async function processLine(
 
       res.push(output.value);
       if (output.isErr()) {
-        exitCode = 1;
-        break;
+        return new Err(res);
       }
     } else {
       res.push(line);
     }
   }
 
-  await write(res, lineEnd);
-
-  Deno.exit(exitCode);
+  return new Ok(res);
 }
 
 // process -g option
@@ -115,8 +111,7 @@ export async function processRegexLine(
   solid: boolean,
   lineEnd: string,
   dryrun: boolean
-): Promise<void> {
-  let exitCode = 0;
+): Promise<Result<string[], string[]>> {
   const res: string[] = [];
 
   for (const line of lines) {
@@ -139,188 +134,149 @@ export async function processRegexLine(
 
     res.push(output.value);
     if (output.isErr()) {
-      exitCode = 1;
-      break;
+      return new Err(res);
     }
   }
-  await write(res, lineEnd);
-  Deno.exit(exitCode);
+  return new Ok(res);
 }
 
 // process -og
 export async function processRegexPattern(
-  lines: string[],
+  line: string,
   cmds: string[],
   regex: RegExp,
   invert: boolean,
   solid: boolean,
   lineEnd: string,
   dryrun: boolean
-): Promise<void> {
-  let exitCode = 0;
-  const res: string[] = [];
+): Promise<Result<string, string>> {
+  const ranges = Range.fromRegex(line, regex, invert);
+  let result = "";
+  let last = 0;
+  for (const range of ranges) {
+    const low = range.low - 1;
+    const high = range.high - 1;
 
-  loop: for (const line of lines) {
-    const ranges = Range.fromRegex(line, regex, invert);
-    let subString = "";
-    let last = 0;
-    for (const range of ranges) {
-      const low = range.low - 1;
-      const high = range.high - 1;
+    const notMatchedPart = line.slice(last, low);
+    const matchedPart = line.slice(low, high + 1);
 
-      const notMatchedPart = line.slice(last, low);
-      const matchedPart = line.slice(low, high + 1);
+    const processed = await execCommands(
+      cmds,
+      matchedPart,
+      solid,
+      lineEnd,
+      dryrun
+    );
 
-      const processed = await execCommands(
-        cmds,
-        matchedPart,
-        solid,
-        lineEnd,
-        dryrun
-      );
-
-      subString += notMatchedPart;
-      if (processed.isOk()) {
-        subString += processed.value;
-      }
-      if (processed.isErr()) {
-        exitCode = 1;
-        res.push(subString);
-        res.push(processed.value);
-        break loop;
-      }
-      last = high + 1;
+    result += notMatchedPart;
+    if (processed.isOk()) {
+      result += processed.value;
     }
-    // add remained not matched part
-    subString += line.slice(last, line.length);
-    res.push(subString);
+    if (processed.isErr()) {
+      return new Err(`${result}\n${processed.value}`);
+    }
+    last = high + 1;
   }
-  await write(res, lineEnd);
-
-  Deno.exit(exitCode);
+  // add remained not matched part
+  result += line.slice(last, line.length);
+  return new Ok(result);
 }
 
 // process -c option
 export async function processChar(
-  lines: string[],
+  line: string,
   cmds: string[],
   ranges: Range[],
   solid: boolean,
   lineEnd: string,
   dryrun: boolean
-): Promise<void> {
-  let exitCode = 0;
-  const res: string[] = [];
+): Promise<Result<string, string>> {
+  let result = "";
+  let last = 0;
+  for (const range of ranges) {
+    const low = range.low - 1;
+    const high = range.high - 1;
 
-  loop: for (const line of lines) {
-    let subString = "";
-    let last = 0;
-    for (const range of ranges) {
-      const low = range.low - 1;
-      const high = range.high - 1;
+    const notSelectedPart = line.slice(last, low);
+    const selectedPart = line.slice(low, high + 1);
 
-      const notSelectedPart = line.slice(last, low);
-      const selectedPart = line.slice(low, high + 1);
+    const processed = await execCommands(
+      cmds,
+      selectedPart,
+      solid,
+      lineEnd,
+      dryrun
+    );
 
-      const processed = await execCommands(
-        cmds,
-        selectedPart,
-        solid,
-        lineEnd,
-        dryrun
-      );
-
-      subString += notSelectedPart;
-      if (processed.isOk()) {
-        subString += processed.value;
-      }
-      if (processed.isErr()) {
-        exitCode = 1;
-        res.push(subString);
-        res.push(processed.value);
-        break loop;
-      }
-      last = high + 1;
+    result += notSelectedPart;
+    if (processed.isOk()) {
+      result += processed.value;
     }
-    // add remained not matched part
-    subString += line.slice(last, line.length);
-    res.push(subString);
+    if (processed.isErr()) {
+      return new Err(`${result}\n${processed.value}`);
+    }
+    last = high + 1;
   }
-
-  await write(res, lineEnd);
-
-  Deno.exit(exitCode);
+  // add remained not matched part
+  result += line.slice(last, line.length);
+  return new Ok(result);
 }
 
 // process -f -d <delimiter>
 export async function processField(
-  lines: string[],
+  line: string,
   cmds: string[],
   ranges: Range[],
   delimiter: string,
   solid: boolean,
   lineEnd: string,
   dryrun: boolean
-): Promise<void> {
-  let exitCode = 0;
-  const res: string[] = [];
-  loop: for (const line of lines) {
-    const parts = line.split(delimiter);
-    let ri = 0;
-    const subString = [];
+): Promise<Result<string, string>> {
+  const parts = line.split(delimiter);
+  let ri = 0;
+  let result = "";
 
-    for (const [i, part] of parts.entries()) {
-      if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
-        ri += 1;
-      }
-      if (ranges[ri].low <= i + 1 && i + 1 <= ranges[ri].high) {
-        const processed = await execCommands(
-          cmds,
-          part,
-          solid,
-          lineEnd,
-          dryrun
-        );
-        if (processed.isOk()) {
-          subString.push(processed.value);
-        }
-        if (processed.isErr()) {
-          res.push(subString.join(delimiter));
-          res.push(processed.value);
-          break loop;
-        }
-      } else {
-        subString.push(part);
-      }
+  for (const [i, part] of parts.entries()) {
+    if (i > 0) {
+      result += delimiter;
     }
-    res.push(subString.join(delimiter));
+    if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
+      ri += 1;
+    }
+    if (ranges[ri].low <= i + 1 && i + 1 <= ranges[ri].high) {
+      const processed = await execCommands(cmds, part, solid, lineEnd, dryrun);
+      if (processed.isOk()) {
+        result += processed.value;
+      }
+      if (processed.isErr()) {
+        return new Err(`${result}\n${processed.value}`);
+      }
+    } else {
+      result += part;
+    }
   }
 
-  await write(res, lineEnd);
-
-  Deno.exit(exitCode);
+  return new Ok(result);
 }
 
 // process -f -D <pattern>
 export async function processRegexField(
-  lines: string[],
+  line: string,
   cmds: string[],
   ranges: Range[],
   regexDelimiter: RegExp,
   solid: boolean,
   lineEnd: string,
   dryrun: boolean
-): Promise<void> {
-  let exitCode = 0;
-  const res: string[] = [];
+): Promise<Result<string, string>> {
+  const parts = line.split(regexDelimiter);
+  const delimiters = line.match(regexDelimiter);
+  let result = "";
+  let ri = 0;
 
-  loop: for (const line of lines) {
-    const parts = line.split(regexDelimiter);
-    const delimiters = line.match(regexDelimiter);
-    let subString = "";
-    let ri = 0;
-
-    for (let [i, part] of parts.entries()) {
+  for (let [i, part] of parts.entries()) {
+    if (i > 0) {
+      result += delimiters?.length ? delimiters.shift() : "";
       if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
         ri += 1;
       }
@@ -336,22 +292,15 @@ export async function processRegexField(
           dryrun
         );
         if (processed.isOk()) {
-          subString += processed.value;
+          result += processed.value;
         }
         if (processed.isErr()) {
-          res.push(subString);
-          res.push(processed.value);
-          break loop;
+          return new Err(`${result}\n${processed.value}`);
         }
       } else {
-        subString += part;
+        result += part;
       }
-      const delimiter = delimiters?.length ? delimiters.shift() : "";
-      subString += delimiter;
     }
-    res.push(subString);
   }
-  await write(res, lineEnd);
-
-  Deno.exit(exitCode);
+  return new Ok(result);
 }

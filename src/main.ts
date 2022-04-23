@@ -123,9 +123,12 @@ async function main(): Promise<void> {
   const lines = input.value.split(lineEnd);
 
   // ***** Start processing *****
+
+  let result: Result<string[], string[]> = new Ok([]);
+
   if (flagLines) {
     // -l <list>
-    await processLine(
+    result = await processLine(
       lines,
       cmds,
       lineList.value,
@@ -141,7 +144,7 @@ async function main(): Promise<void> {
       Deno.exit(1);
     } else {
       // -g <pattern>
-      await processRegexLine(
+      result = await processRegexLine(
         lines,
         cmds,
         regexPattern.value,
@@ -152,60 +155,77 @@ async function main(): Promise<void> {
       );
     }
   } else {
-    if (flagRegex) {
-      if (flagOnig) {
-        // -g <pattern> -G -o
-        // TODO
-        write("teip: Oniguruma option is not supported now.", "\n");
-        Deno.exit(1);
-      } else {
-        // -g <pattern> -o
-        const regex = new RegExp(regexPattern.value, "g");
-        await processRegexPattern(
-          lines,
+    const processed: string[] = [];
+    for (const line of lines) {
+      let output: Result<string, string> = new Ok("");
+      if (flagRegex) {
+        if (flagOnig) {
+          // -g <pattern> -G -o
+          // TODO
+          output = new Err("teip: Oniguruma option is not supported now.");
+        } else {
+          // -g <pattern> -o
+          const regex = new RegExp(regexPattern.value, "g");
+          output = await processRegexPattern(
+            line,
+            cmds,
+            regex,
+            flagInvert,
+            flagSolid,
+            lineEnd,
+            flagDryrun
+          );
+        }
+      } else if (flagChar) {
+        // -c <list>
+        output = await processChar(
+          line,
           cmds,
-          regex,
-          flagInvert,
+          charList.value,
           flagSolid,
           lineEnd,
           flagDryrun
         );
+      } else if (flagField) {
+        if (flagDelimiter) {
+          // -f <list> -d <delimiter>
+          output = await processField(
+            line,
+            cmds,
+            fieldList.value,
+            delimiter,
+            flagSolid,
+            lineEnd,
+            flagDryrun
+          );
+        } else {
+          // -f <list> -D <pattern>
+          output = await processRegexField(
+            line,
+            cmds,
+            fieldList.value,
+            regexDelimiter,
+            flagSolid,
+            lineEnd,
+            flagDryrun
+          );
+        }
       }
-    } else if (flagChar) {
-      // -c <list>
-      await processChar(
-        lines,
-        cmds,
-        charList.value,
-        flagSolid,
-        lineEnd,
-        flagDryrun
-      );
-    } else if (flagField) {
-      if (flagDelimiter) {
-        // -f <list> -d <delimiter>
-        await processField(
-          lines,
-          cmds,
-          fieldList.value,
-          delimiter,
-          flagSolid,
-          lineEnd,
-          flagDryrun
-        );
-      } else {
-        // -f <list> -D <pattern>
-        await processRegexField(
-          lines,
-          cmds,
-          fieldList.value,
-          regexDelimiter,
-          flagSolid,
-          lineEnd,
-          flagDryrun
-        );
+
+      processed.push(output.value);
+      if (output.isErr()) {
+        result = new Err(processed);
+        break;
       }
     }
+    result = new Ok(processed);
+  }
+
+  write(result.value, lineEnd);
+  if (result.isOk()) {
+    Deno.exit(0);
+  } else {
+    Deno.exit(1);
   }
 }
 
