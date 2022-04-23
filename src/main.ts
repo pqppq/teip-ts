@@ -31,8 +31,6 @@ import {
 //  -v              Invert the sense of selecting
 //  -z              Line delimiter is NUL instead of newline
 
-const args = Deno.args;
-
 async function main(): Promise<void> {
   const args = parse(Deno.args);
 
