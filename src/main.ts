@@ -1,3 +1,7 @@
+import {
+  decode as utf8Decode,
+  encode as utf8Encode,
+} from "https://deno.land/std@0.82.0/encoding/utf8.ts";
 import { parse } from "./utils/mod.ts";
 import { Range } from "./list/range.ts";
 import { listToRanges } from "./utils/converter.ts";
@@ -112,13 +116,25 @@ async function main(): Promise<void> {
   const delimiter = d ? d : "";
   const regexDelimiter = D ? new RegExp(D, "g") : new RegExp("\\s+", "g");
 
-  const flagDryrun: boolean = !cmds.length;
+  const flagDryrun: boolean = !cmds.length as boolean;
+
+  const input = await readStdIn();
+  if (input.isErr()) {
+    write("teip: fail to read from stdin.", "\n");
+  }
+  const lines = input.value.split(lineEnd);
 
   // ***** Start processing *****
-
   if (flagLines) {
     // -l <list>
-    await processLine(cmds, lineList.value, flagSolid, lineEnd, flagDryrun);
+    await processLine(
+      lines,
+      cmds,
+      lineList.value,
+      flagSolid,
+      lineEnd,
+      flagDryrun
+    );
   } else if (!flagOnly && flagRegex) {
     if (flagOnig) {
       // -g <pattern> -G
@@ -128,6 +144,7 @@ async function main(): Promise<void> {
     } else {
       // -g <pattern>
       await processRegexLine(
+        lines,
         cmds,
         regexPattern.value,
         flagInvert,
@@ -147,6 +164,7 @@ async function main(): Promise<void> {
         // -g <pattern> -o
         const regex = new RegExp(regexPattern.value, "g");
         await processRegexPattern(
+          lines,
           cmds,
           regex,
           flagInvert,
@@ -157,11 +175,19 @@ async function main(): Promise<void> {
       }
     } else if (flagChar) {
       // -c <list>
-      await processChar(cmds, charList.value, flagSolid, lineEnd, flagDryrun);
+      await processChar(
+        lines,
+        cmds,
+        charList.value,
+        flagSolid,
+        lineEnd,
+        flagDryrun
+      );
     } else if (flagField) {
       if (flagDelimiter) {
         // -f <list> -d <delimiter>
         await processField(
+          lines,
           cmds,
           fieldList.value,
           delimiter,
@@ -172,6 +198,7 @@ async function main(): Promise<void> {
       } else {
         // -f <list> -D <pattern>
         await processRegexField(
+          lines,
           cmds,
           fieldList.value,
           regexDelimiter,
@@ -182,6 +209,28 @@ async function main(): Promise<void> {
       }
     }
   }
+}
+
+// get lines from stdin
+async function readStdIn(): Promise<Result<string, string>> {
+  const DEFAULT_BUF_SIZE = 1024;
+  const buffer = new Uint8Array(DEFAULT_BUF_SIZE);
+  const n = await Deno.stdin.read(buffer);
+  if (n == null) {
+    return new Err("teip: No input from stdin.");
+  }
+
+  let input = utf8Decode(buffer.subarray(0, n));
+
+  if (input.length == 0) {
+    return new Err("teip: Invalid arguments.");
+  }
+
+  if (input.endsWith("\n")) {
+    input = input.slice(0, -1);
+  }
+
+  return new Ok(input);
 }
 
 main();
