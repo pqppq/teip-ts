@@ -268,9 +268,9 @@ assert_equal "$actual" "$expected"
 	assert_equal "$actual" "$expected"
 }
 
-@test '-f 3- -d , grep' {
+@test '-f 3- -d , grep fail' {
 	actual=`echo -e 'AAA,BBB,CCC,DDD\nEEE,FFF,GGG,HHH\n' | deno run -q --allow-run $main -d , -f 3- -- grep G`
-	expected=`echo -e 'AAA,BBB\nteip: Output of given commands is exhausted'`
+	expected=`echo -e 'AAA,BBB,\nteip: Output of given commands is exhausted'`
 	assert_equal "$actual" "$expected"
 }
 
