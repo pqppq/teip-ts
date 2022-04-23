@@ -219,6 +219,9 @@ export async function processField(
   let result = "";
 
   for (const [i, part] of parts.entries()) {
+    if (i > 0) {
+      result += delimiter;
+    }
     if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
       ri += 1;
     }
@@ -256,29 +259,23 @@ export async function processRegexField(
   for (let [i, part] of parts.entries()) {
     if (i > 0) {
       result += delimiters?.length ? delimiters.shift() : "";
-      if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
-        ri += 1;
+    }
+    if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
+      ri += 1;
+    }
+    if (ranges[ri].low <= i + 1 && i + 1 <= ranges[ri].high) {
+      if (part == "") {
+        part = " ";
       }
-      if (ranges[ri].low <= i + 1 && i + 1 <= ranges[ri].high) {
-        if (part == "") {
-          part = " ";
-        }
-        const processed = await execCommands(
-          cmds,
-          part,
-          solid,
-          lineEnd,
-          dryrun
-        );
-        if (processed.isOk()) {
-          result += processed.value;
-        }
-        if (processed.isErr()) {
-          return new Err(`${result}\n${processed.value}`);
-        }
-      } else {
-        result += part;
+      const processed = await execCommands(cmds, part, solid, lineEnd, dryrun);
+      if (processed.isOk()) {
+        result += processed.value;
       }
+      if (processed.isErr()) {
+        return new Err(`${result}\n${processed.value}`);
+      }
+    } else {
+      result += part;
     }
   }
   return new Ok(result);
