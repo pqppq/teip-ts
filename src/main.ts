@@ -8,7 +8,6 @@ import { listToRanges } from "./utils/converter.ts";
 
 import { Result, Ok, Err } from "./utils/result.ts";
 import {
-  write,
   processLine,
   processRegexLine,
   processRegexPattern,
@@ -249,6 +248,24 @@ async function readStdIn(): Promise<Result<string, string>> {
   }
 
   return new Ok(input);
+}
+
+async function write(
+  result: string | string[],
+  lineEnd: string
+): Promise<void> {
+  const output =
+    typeof result == "object"
+      ? result
+          .map((l) => {
+            if (l.slice(-1) == lineEnd) {
+              return l.slice(0, -1);
+            }
+            return l;
+          })
+          .join(lineEnd) + lineEnd
+      : result + lineEnd;
+  await Deno.stdout.write(utf8Encode(output));
 }
 
 main();

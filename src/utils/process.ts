@@ -47,24 +47,6 @@ async function execCommands(
   return new Ok(str);
 }
 
-export async function write(
-  result: string | string[],
-  lineEnd: string
-): Promise<void> {
-  const output =
-    typeof result == "object"
-      ? result
-          .map((l) => {
-            if (l.slice(-1) == lineEnd) {
-              return l.slice(0, -1);
-            }
-            return l;
-          })
-          .join(lineEnd) + lineEnd
-      : result + lineEnd;
-  await Deno.stdout.write(utf8Encode(output));
-}
-
 // process -l option
 export async function processLine(
   lines: string[],
@@ -237,9 +219,6 @@ export async function processField(
   let result = "";
 
   for (const [i, part] of parts.entries()) {
-    if (i > 0) {
-      result += delimiter;
-    }
     if (ranges[ri].high < i + 1 && ri + 1 < ranges.length) {
       ri += 1;
     }
