@@ -50,7 +50,7 @@ async function execCommands(
 // process -l option
 export async function processLine(
   lines: string[],
-  cmds: string[],
+  command: string[],
   ranges: Range[],
   solid: boolean,
   lineEnd: string,
@@ -70,7 +70,7 @@ export async function processLine(
       high = range ? range.high : Range.MAX;
     }
     if (low <= n && n <= high) {
-      const output = await execCommands(cmds, line, solid, lineEnd, dryrun);
+      const output = await execCommands(command, line, solid, lineEnd, dryrun);
 
       res.push(output.value);
       if (output.isErr()) {
@@ -87,7 +87,7 @@ export async function processLine(
 // process -g option
 export async function processRegexLine(
   lines: string[],
-  cmds: string[],
+  command: string[],
   regex: string,
   invert: boolean,
   solid: boolean,
@@ -104,11 +104,11 @@ export async function processRegexLine(
       if (invert) {
         output = new Ok(line);
       } else {
-        output = await execCommands(cmds, line, solid, lineEnd, dryrun);
+        output = await execCommands(command, line, solid, lineEnd, dryrun);
       }
     } else {
       if (invert) {
-        output = await execCommands(cmds, line, solid, lineEnd, dryrun);
+        output = await execCommands(command, line, solid, lineEnd, dryrun);
       } else {
         output = new Ok(line);
       }
@@ -125,7 +125,7 @@ export async function processRegexLine(
 // process -og
 export async function processRegexPattern(
   line: string,
-  cmds: string[],
+  command: string[],
   regex: RegExp,
   invert: boolean,
   solid: boolean,
@@ -143,7 +143,7 @@ export async function processRegexPattern(
     const matchedPart = line.slice(low, high + 1);
 
     const processed = await execCommands(
-      cmds,
+      command,
       matchedPart,
       solid,
       lineEnd,
@@ -167,7 +167,7 @@ export async function processRegexPattern(
 // process -c option
 export async function processChar(
   line: string,
-  cmds: string[],
+  command: string[],
   ranges: Range[],
   solid: boolean,
   lineEnd: string,
@@ -183,7 +183,7 @@ export async function processChar(
     const selectedPart = line.slice(low, high + 1);
 
     const processed = await execCommands(
-      cmds,
+      command,
       selectedPart,
       solid,
       lineEnd,
@@ -207,7 +207,7 @@ export async function processChar(
 // process -f -d <delimiter>
 export async function processField(
   line: string,
-  cmds: string[],
+  command: string[],
   ranges: Range[],
   delimiter: string,
   solid: boolean,
@@ -226,7 +226,13 @@ export async function processField(
       ri += 1;
     }
     if (ranges[ri].low <= i + 1 && i + 1 <= ranges[ri].high) {
-      const processed = await execCommands(cmds, part, solid, lineEnd, dryrun);
+      const processed = await execCommands(
+        command,
+        part,
+        solid,
+        lineEnd,
+        dryrun
+      );
       if (processed.isOk()) {
         result += processed.value;
       }
@@ -244,7 +250,7 @@ export async function processField(
 // process -f -D <pattern>
 export async function processRegexField(
   line: string,
-  cmds: string[],
+  command: string[],
   ranges: Range[],
   regexDelimiter: RegExp,
   solid: boolean,
@@ -267,7 +273,13 @@ export async function processRegexField(
       if (part == "") {
         part = " ";
       }
-      const processed = await execCommands(cmds, part, solid, lineEnd, dryrun);
+      const processed = await execCommands(
+        command,
+        part,
+        solid,
+        lineEnd,
+        dryrun
+      );
       if (processed.isOk()) {
         result += processed.value;
       }

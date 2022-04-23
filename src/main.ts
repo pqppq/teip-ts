@@ -33,7 +33,7 @@ import {
 async function main(): Promise<void> {
   const args = parse(Deno.args);
 
-  const cmds = args["--"];
+  const cmd = args["--"];
   const rest = args[""];
 
   const flagOnly = args["o"];
@@ -113,7 +113,7 @@ async function main(): Promise<void> {
   const delimiter = d ? d : "";
   const regexDelimiter = D ? new RegExp(D, "g") : new RegExp("\\s+", "g");
 
-  const flagDryrun: boolean = !cmds.length as boolean;
+  const flagDryrun: boolean = !cmd.length as boolean;
 
   const input = await readStdIn();
   if (input.isErr()) {
@@ -129,7 +129,7 @@ async function main(): Promise<void> {
     // -l <list>
     result = await processLine(
       lines,
-      cmds,
+      cmd,
       lineList.value,
       flagSolid,
       lineEnd,
@@ -145,7 +145,7 @@ async function main(): Promise<void> {
       // -g <pattern>
       result = await processRegexLine(
         lines,
-        cmds,
+        cmd,
         regexPattern.value,
         flagInvert,
         flagSolid,
@@ -167,7 +167,7 @@ async function main(): Promise<void> {
           const regex = new RegExp(regexPattern.value, "g");
           output = await processRegexPattern(
             line,
-            cmds,
+            cmd,
             regex,
             flagInvert,
             flagSolid,
@@ -179,7 +179,7 @@ async function main(): Promise<void> {
         // -c <list>
         output = await processChar(
           line,
-          cmds,
+          cmd,
           charList.value,
           flagSolid,
           lineEnd,
@@ -190,7 +190,7 @@ async function main(): Promise<void> {
           // -f <list> -d <delimiter>
           output = await processField(
             line,
-            cmds,
+            cmd,
             fieldList.value,
             delimiter,
             flagSolid,
@@ -201,7 +201,7 @@ async function main(): Promise<void> {
           // -f <list> -D <pattern>
           output = await processRegexField(
             line,
-            cmds,
+            cmd,
             fieldList.value,
             regexDelimiter,
             flagSolid,
