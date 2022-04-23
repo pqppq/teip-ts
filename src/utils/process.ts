@@ -23,7 +23,7 @@ async function execCommands(
   dryrun: boolean
 ): Promise<Result<string, string>> {
   const p = Deno.run({
-    cmd: ["bash"],
+    cmd: command,
     stdin: "piped",
     stdout: "piped",
     stderr: "inherit",
@@ -31,7 +31,7 @@ async function execCommands(
   if (dryrun) {
     return new Ok(colorize(input));
   }
-  await p.stdin?.write(utf8Encode(`echo -n '${input}' | ${command.join(" ")}`));
+  await p.stdin?.write(utf8Encode(input));
   await p.stdin?.close();
   const output = await p.output();
   if (output.length == 0) {
